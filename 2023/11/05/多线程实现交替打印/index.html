@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>多线程实现交替打印 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="多线程实现交替打印首先提出该问题的面试官主要是考察，你对协程之间相互通信和协程的生命周期管理的考察,所以我们首先想到的是用chan进行协程之间通信，用sync.WaitGroup来管理协程的生命周期 两个协程交替打印错误解法： 1234567891011121314151617181920212223func main() &#123;	var ch1 &#x3D; make(chan int)	var c">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多线程实现交替打印">
+<meta property="og:url" content="http://example.com/2023/11/05/%E5%A4%9A%E7%BA%BF%E7%A8%8B%E5%AE%9E%E7%8E%B0%E4%BA%A4%E6%9B%BF%E6%89%93%E5%8D%B0/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="多线程实现交替打印首先提出该问题的面试官主要是考察，你对协程之间相互通信和协程的生命周期管理的考察,所以我们首先想到的是用chan进行协程之间通信，用sync.WaitGroup来管理协程的生命周期 两个协程交替打印错误解法： 1234567891011121314151617181920212223func main() &#123;	var ch1 &#x3D; make(chan int)	var c">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2023-11-05T04:15:30.935Z">
+<meta property="article:modified_time" content="2023-07-12T09:43:47.614Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.png">
+  
+  
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-source-code-pro@0.0.71/index.min.css">
+
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.min.css">
+
+  
+  
+<meta name="generator" content="Hexo 7.0.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"><span class="fa fa-bars"></span></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+        
+          <a class="nav-icon" href="/atom.xml" title="RSS Feed"><span class="fa fa-rss"></span></a>
+        
+        <a class="nav-icon nav-search-btn" title="Search"><span class="fa fa-search"></span></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-多线程实现交替打印" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/11/05/%E5%A4%9A%E7%BA%BF%E7%A8%8B%E5%AE%9E%E7%8E%B0%E4%BA%A4%E6%9B%BF%E6%89%93%E5%8D%B0/" class="article-date">
+  <time class="dt-published" datetime="2023-11-05T04:15:30.935Z" itemprop="datePublished">2023-11-05</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%B8%B8%E8%A7%81Go%E9%9D%A2%E8%AF%95%E9%A2%98%E6%80%9D%E8%80%83/">常见Go面试题思考</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      多线程实现交替打印
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h1 id="多线程实现交替打印"><a href="#多线程实现交替打印" class="headerlink" title="多线程实现交替打印"></a>多线程实现交替打印</h1><p>首先提出该问题的面试官主要是考察，你对协程之间相互通信和协程的生命周期管理的考察,所以我们首先想到的是用<code>chan</code>进行协程之间通信，用<code>sync.WaitGroup</code>来管理协程的生命周期</p>
+<h2 id="两个协程交替打印"><a href="#两个协程交替打印" class="headerlink" title="两个协程交替打印"></a>两个协程交替打印</h2><p>错误解法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> ch1 = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">	<span class="keyword">var</span> ch2 = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">	<span class="keyword">var</span> ch3 = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">bool</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> a := <span class="number">0</span>; a &lt; <span class="number">5</span>; a++ &#123;</span><br><span class="line">			i := &lt;-ch1</span><br><span class="line">			fmt.Println(<span class="string">&quot;goroutine 1: &quot;</span>, i)</span><br><span class="line">			ch2 &lt;- i + <span class="number">1</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> a := <span class="number">0</span>; a &lt; <span class="number">5</span>; a++ &#123;</span><br><span class="line">			i := &lt;-ch2</span><br><span class="line">			fmt.Println(<span class="string">&quot;goroutine 2: &quot;</span>, i)</span><br><span class="line">			ch1 &lt;- i + <span class="number">1</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	ch1 &lt;- <span class="number">1</span></span><br><span class="line">	</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种解法无法控制main协程在其他协程工作结束之后才结束，可能打印工作还没结束，主协程就结束了。</p>
+<p>方案一：使用两个<code>chan</code>来控制来控制两个协程的工作顺序，并使用用<code>sync.WaitGroup</code>来管理协程的生命周期</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> ch1 = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>, <span class="number">1</span>)</span><br><span class="line">	<span class="keyword">var</span> ch2 = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>, <span class="number">1</span>)</span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line"></span><br><span class="line">	wg.Add(<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> wg.Done()</span><br><span class="line">		<span class="keyword">for</span> a := <span class="number">0</span>; a &lt; <span class="number">5</span>; a++ &#123;</span><br><span class="line">			i := &lt;-ch1</span><br><span class="line">			fmt.Println(<span class="string">&quot;goroutine 1: &quot;</span>, i)</span><br><span class="line">			ch2 &lt;- i + <span class="number">1</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> wg.Done()</span><br><span class="line">		<span class="keyword">for</span> a := <span class="number">0</span>; a &lt; <span class="number">5</span>; a++ &#123;</span><br><span class="line">			i := &lt;-ch2</span><br><span class="line">			fmt.Println(<span class="string">&quot;goroutine 2: &quot;</span>, i)</span><br><span class="line">			ch1 &lt;- i + <span class="number">1</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	ch1 &lt;- <span class="number">1</span></span><br><span class="line">    <span class="comment">// 等待协程执行完毕，main必须在其他协程完成工作之后才能结束</span></span><br><span class="line">	wg.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>方案二：使用两个<code>chan</code> 来控制两个工作协程的的打印顺序，另一<code>chan</code>来管理主协程在最后结束生命。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> ch1 = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">	<span class="keyword">var</span> ch2 = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">	<span class="keyword">var</span> ch3 = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">bool</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> a := <span class="number">0</span>; a &lt; <span class="number">5</span>; a++ &#123;</span><br><span class="line">			i := &lt;-ch1</span><br><span class="line">			fmt.Println(<span class="string">&quot;goroutine 1: &quot;</span>, i)</span><br><span class="line">			ch2 &lt;- i + <span class="number">1</span></span><br><span class="line">		&#125;</span><br><span class="line">		ch3 &lt;- <span class="literal">true</span></span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> a := <span class="number">0</span>; a &lt; <span class="number">5</span>; a++ &#123;</span><br><span class="line">			i := &lt;-ch2</span><br><span class="line">			fmt.Println(<span class="string">&quot;goroutine 2: &quot;</span>, i)</span><br><span class="line">			ch1 &lt;- i + <span class="number">1</span></span><br><span class="line">		&#125;</span><br><span class="line">		ch3 &lt;- <span class="literal">true</span></span><br><span class="line">	&#125;()</span><br><span class="line">	ch1 &lt;- <span class="number">1</span></span><br><span class="line">	&lt;-ch3</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="扩展-N个协程交替打印"><a href="#扩展-N个协程交替打印" class="headerlink" title="扩展-N个协程交替打印"></a>扩展-N个协程交替打印</h2><p>例子-使用三个协程交替打印</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getWorker</span><span class="params">(wg *sync.WaitGroup, waitCh <span class="keyword">chan</span> <span class="type">int</span>, symbol <span class="type">int</span>)</span></span> <span class="keyword">chan</span> <span class="type">int</span> &#123;</span><br><span class="line">	notify := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">	wg.Add(<span class="number">1</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(waitCh <span class="keyword">chan</span> <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			wg.Done()</span><br><span class="line">		&#125;()</span><br><span class="line">		fmt.Printf(<span class="string">&quot;waitCh Address of p=%p ，i:%d \n&quot;</span>, waitCh, symbol)</span><br><span class="line">		<span class="keyword">for</span> d := <span class="keyword">range</span> waitCh &#123;</span><br><span class="line">			<span class="keyword">if</span> d &gt;= <span class="number">30</span> &#123;</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">			&#125;</span><br><span class="line">			fmt.Println(<span class="string">&quot;goroutine:&quot;</span>, symbol, <span class="string">&quot;print&quot;</span>, d)</span><br><span class="line">			notify &lt;- d + <span class="number">1</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="built_in">close</span>(notify)</span><br><span class="line">		fmt.Println(<span class="string">&quot;goroutine: finish&quot;</span>, symbol)</span><br><span class="line">	&#125;(waitCh)</span><br><span class="line">	<span class="keyword">return</span> notify</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	goruntineNum := <span class="number">3</span></span><br><span class="line">	wg := <span class="built_in">new</span>(sync.WaitGroup)</span><br><span class="line">	start := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 使用lastCh保存start值用于后续计算，start后面还要用。</span></span><br><span class="line">	lastch := start</span><br><span class="line">	fmt.Printf(<span class="string">&quot;waitCh Address of start p=%p ，lastch p=%p \n&quot;</span>, start, lastch)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; goruntineNum; i++ &#123;</span><br><span class="line">		lastch = getWorker(wg, lastch, i+<span class="number">1</span>)</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// for循环之后lastch就是最后一个协程返回的通道，我们需要将通道内的值发送到第一个协程的通道内，就是下面的for range的操作</span></span><br><span class="line">	start &lt;- <span class="number">1</span></span><br><span class="line">    <span class="comment">// 当最后一个协程打印之后通知第一个协程的通道，该工作了</span></span><br><span class="line">	<span class="keyword">for</span> v := <span class="keyword">range</span> lastch &#123;</span><br><span class="line">		start &lt;- v</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">close</span>(start)</span><br><span class="line">	wg.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>流程，第一个for循环是创建工作协程，并且每创建一个协程都会返回一个通道用于启动下一个协程，并且该chan还负责向下一个协程通知需要打印的数字。但是这样的话最后一个协程返回的通道没有协程使用，所以我们将最后返回的通道中的值发送给start，也就是第一个协程使用的通道，这样当一个协程打印数字之后就会通知下一个协程去打印下一个数字，而最后一个协程打印之后就会通知第一个协程继续打印，这样循环打印，直到打印完毕。</p>
+<p>知识点:</p>
+<p>这里的<code>for</code>语句也可以被称为带有<code>range</code>子句的<code>for</code>语句，有如下特征：</p>
+<ul>
+<li>一、这样一条<code>for</code>语句会不断地尝试从<code>intChan2</code>种取出元素值，即使<code>intChan2</code>被关闭，它也会在取出所有剩余的元素值之后再结束执行。</li>
+<li>二、当<code>intChan2</code>中没有元素值时，它会被阻塞在有<code>for</code>关键字的那一行，直到有新的元素值可取。</li>
+<li>三、假设<code>intChan2</code>的值为<code>nil</code>，那么它会被永远阻塞在有<code>for</code>关键字的那一行。</li>
+</ul>
+<p>除此以外，通道还可以和select结合使用：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 准备好几个通道。</span></span><br><span class="line">intChannels := [<span class="number">3</span>]<span class="keyword">chan</span> <span class="type">int</span>&#123;</span><br><span class="line">	<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>, <span class="number">1</span>),</span><br><span class="line">	<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>, <span class="number">1</span>),</span><br><span class="line">	<span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int</span>, <span class="number">1</span>),</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 随机选择一个通道，并向它发送元素值。</span></span><br><span class="line">index := rand.Intn(<span class="number">3</span>)</span><br><span class="line">fmt.Printf(<span class="string">&quot;The index: %d\n&quot;</span>, index)</span><br><span class="line">intChannels[index] &lt;- index</span><br><span class="line"><span class="comment">// 哪一个通道中有可取的元素值，哪个对应的分支就会被执行。</span></span><br><span class="line"><span class="keyword">select</span> &#123;</span><br><span class="line"><span class="keyword">case</span> &lt;-intChannels[<span class="number">0</span>]:</span><br><span class="line">	fmt.Println(<span class="string">&quot;The first candidate case is selected.&quot;</span>)</span><br><span class="line"><span class="keyword">case</span> &lt;-intChannels[<span class="number">1</span>]:</span><br><span class="line">	fmt.Println(<span class="string">&quot;The second candidate case is selected.&quot;</span>)</span><br><span class="line"><span class="keyword">case</span> elem := &lt;-intChannels[<span class="number">2</span>]:</span><br><span class="line">	fmt.Printf(<span class="string">&quot;The third candidate case is selected, the element is %d.\n&quot;</span>, elem)</span><br><span class="line"><span class="keyword">default</span>:</span><br><span class="line">	fmt.Println(<span class="string">&quot;No candidate case is selected!&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在使用<code>select</code>语句的时候，我们首先需要注意下面几个事情。</p>
+<ol>
+<li>如果像上述示例那样加入了<strong>默认分支，那么无论涉及通道操作的表达式是否有阻塞，<code>select</code>语句都不会被阻塞</strong>。如果那几个表达式都阻塞了，或者说都没有满足求值的条件，那么默认分支就会被选中并执行。</li>
+<li>如果没有加入默认分支，那么一旦所有的<code>case</code>表达式都没有满足求值条件，那么<code>select</code>语句就会被阻塞。直到至少有一个<code>case</code>表达式满足条件为止。</li>
+<li>还记得吗？我们可能会因为通道关闭了，而直接从通道接收到一个其元素类型的零值。所以，在很多时候，我们需要通过接收表达式的第二个结果值来判断通道是否已经关闭。一旦发现某个通道关闭了，我们就应该及时地屏蔽掉对应的分支或者采取其他措施。这对于程序逻辑和程序性能都是有好处的。</li>
+<li><code>select</code>语句只能对其中的每一个<code>case</code>表达式各求值一次。所以，如果我们想连续或定时地操作其中的通道的话，就往往需要通过在<code>for</code>语句中嵌入<code>select</code>语句的方式实现。但这时要注意，简单地在<code>select</code>语句的分支中使用<code>break</code>语句，只能结束当前的<code>select</code>语句的执行，而并不会对外层的<code>for</code>语句产生作用。这种错误的用法可能会让这个<code>for</code>语句无休止地运行下去。</li>
+</ol>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2023/11/05/%E5%A4%9A%E7%BA%BF%E7%A8%8B%E5%AE%9E%E7%8E%B0%E4%BA%A4%E6%9B%BF%E6%89%93%E5%8D%B0/" data-id="clokz5ncf0008zotrh1994epn" data-title="多线程实现交替打印" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2023/11/05/%E9%9D%A2%E8%AF%95%E5%87%86%E5%A4%87-Go%E6%8E%A5%E5%8F%A3/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          面试准备-Go接口
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2023/11/05/%E9%9D%A2%E8%AF%95%E5%87%86%E5%A4%87-%E7%BC%96%E8%AF%91/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">面试准备-编译</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Go%E5%AD%A6%E4%B9%A0/">Go学习</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Go%E9%9D%A2%E8%AF%95/">Go面试</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E5%B8%B8%E8%A7%81Go%E9%9D%A2%E8%AF%95%E9%A2%98%E6%80%9D%E8%80%83/">常见Go面试题思考</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2023/11/05/go%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95/">单元测试</a>
+          </li>
+        
+          <li>
+            <a href="/2023/11/05/hello-world/">Hello World</a>
+          </li>
+        
+          <li>
+            <a href="/2023/11/05/Etcd%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/">Etcd服务发现与注册、自定义负载均衡</a>
+          </li>
+        
+          <li>
+            <a href="/2023/11/05/%E9%9D%A2%E8%AF%95%E5%87%86%E5%A4%87-Go%E6%8E%A5%E5%8F%A3/">面试准备-Go接口</a>
+          </li>
+        
+          <li>
+            <a href="/2023/11/05/%E5%A4%9A%E7%BA%BF%E7%A8%8B%E5%AE%9E%E7%8E%B0%E4%BA%A4%E6%9B%BF%E6%89%93%E5%8D%B0/">多线程实现交替打印</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2023 John Doe<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/js/jquery-3.6.4.min.js"></script>
+
+
+
+  
+<script src="/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>
