@@ -4,6 +4,25 @@
   
   
   <entry>
+    <title>Vscod拉取项目报错解决</title>
+    <link href="/2023/11/06/Vscode%E6%8B%89%E5%8F%96%E9%A1%B9%E7%9B%AE%E6%8A%A5%E9%94%99%E8%A7%A3%E5%86%B3/"/>
+    <url>/2023/11/06/Vscode%E6%8B%89%E5%8F%96%E9%A1%B9%E7%9B%AE%E6%8A%A5%E9%94%99%E8%A7%A3%E5%86%B3/</url>
+    
+    <content type="html"><![CDATA[<p>今天在使用VScode拉取项目的时候报错，“fatal: unable to access ‘<a href="https://github.com/aceld/zinx.git/">https://github.com/aceld/zinx.git/</a>‘: Recv failure: Connection was reset”，试了网上最常用的方法，</p><ul><li><p>try 1</p><p>该方法也是最常见的方法，那就是在终端执行：</p><div class="code-wrapper"><pre><code class="hljs go">git config --global --unset http.proxy git config --global --unset https.proxy</code></pre></div><p>但是依然没有用</p></li><li><p>try 2</p><p>修改代理配置，完美解决</p><p>开启代理配置</p><p><img src="/pic/20.png" alt="image-20231106221518844"></p><p>然后在终端输入下面的命令</p><div class="code-wrapper"><pre><code class="hljs go">git config --global http.proxy http:<span class="hljs-comment">//127.0.0.1:7890</span></code></pre></div><p>然后就可以正常的使用了</p><p><img src="/pic/21.png" alt="image-20231106221650273"></p></li></ul>]]></content>
+    
+    
+    <categories>
+      
+      <category>错误解决</category>
+      
+    </categories>
+    
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>面试准备-标准库</title>
     <link href="/2023/11/05/%E9%9D%A2%E8%AF%95%E5%87%86%E5%A4%87-%E6%A0%87%E5%87%86%E5%BA%93/"/>
     <url>/2023/11/05/%E9%9D%A2%E8%AF%95%E5%87%86%E5%A4%87-%E6%A0%87%E5%87%86%E5%BA%93/</url>
